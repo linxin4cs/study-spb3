@@ -1,5 +1,34 @@
 <script setup>
 import { Lock, User } from "@element-plus/icons-vue";
+import { reactive } from "vue";
+import { ElMessage } from "element-plus";
+import { post } from "@/net";
+import router from "@/router";
+
+const form = reactive({
+  username: "",
+  password: "",
+  remember: false,
+});
+
+const login = () => {
+  if (!form.username || !form.password) {
+    ElMessage.warning("请填写用户名和密码！");
+  } else {
+    post(
+      "/api/auth/login",
+      {
+        username: form.username,
+        password: form.password,
+        remember: form.remember,
+      },
+      (message) => {
+        ElMessage.success(message);
+        router.push("/index");
+      }
+    );
+  }
+};
 </script>
 
 <template>
@@ -10,14 +39,19 @@ import { Lock, User } from "@element-plus/icons-vue";
         在进入系统前请先输入用户名和密码进行登录
       </div>
       <div style="margin-top: 50px">
-        <el-input type="text" placeholder="用户名/邮箱">
+        <el-input v-model="form.username" type="text" placeholder="用户名/邮箱">
           <template #prefix>
             <el-icon>
               <User />
             </el-icon>
           </template>
         </el-input>
-        <el-input style="margin-top: 10px" type="text" placeholder="密码">
+        <el-input
+          v-model="form.password"
+          style="margin-top: 10px"
+          type="password"
+          placeholder="密码"
+        >
           <template #prefix>
             <el-icon>
               <Lock />
@@ -34,7 +68,12 @@ import { Lock, User } from "@element-plus/icons-vue";
         </el-col>
       </el-row>
       <div>
-        <el-button style="width: 270px; margin-top: 40px" type="success" plain>
+        <el-button
+          @click="login"
+          style="width: 270px; margin-top: 40px"
+          type="success"
+          plain
+        >
           登录
         </el-button>
       </div>
