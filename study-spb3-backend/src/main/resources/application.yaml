@@ -5,3 +5,15 @@ spring:
     username: root
     password: root
 
+  mail:
+    host: smtp.163.com
+    username: sherly_cs_sh@163.com
+    password: DBSCPMWLJTJPQSVK
+    properties:
+      from: "Study-SPB3 <sherly_cs_sh@163.com>"
+
+  data:
+    redis:
+      database: 0
+      host: localhost
+      port: 6379
