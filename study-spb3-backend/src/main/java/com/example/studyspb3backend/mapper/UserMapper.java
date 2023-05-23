@@ -4,6 +4,7 @@ import com.example.studyspb3backend.entity.Account;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface UserMapper {
@@ -11,5 +12,8 @@ public interface UserMapper {
     Account findByNameOrEmail(String text);
 
     @Insert("insert into account (username, password, email) values (#{username}, #{password}, #{email})")
-    int insert(Account account);
+    int createAccount(Account account);
+
+    @Update("update account set password = #{password} where email = #{email}")
+    int resetPassword(String email, String password);
 }

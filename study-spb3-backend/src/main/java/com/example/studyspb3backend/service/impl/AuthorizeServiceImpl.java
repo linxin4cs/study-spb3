@@ -62,8 +62,8 @@ public class AuthorizeServiceImpl implements AuthorizeService {
      * 4. 在用户注册时，从 Redis 中取出相应的键值对进行验证。
      */
     @Override
-    public String sendValidateEmail(String email, String sessionId) {
-        String key = "email:" + sessionId + ":" + email;
+    public String sendValidateEmail(String email, String sessionId, boolean hasAccount) {
+        String key = "email:" + sessionId + ":" + email + ":" + hasAccount;
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
             Long expire = Optional.ofNullable(redisTemplate.getExpire(key, TimeUnit.SECONDS)).orElse(0L);
@@ -73,33 +73,42 @@ public class AuthorizeServiceImpl implements AuthorizeService {
             }
         }
 
-        if (mapper.findByNameOrEmail(email) != null) {
+        if (hasAccount && mapper.findByNameOrEmail(email) == null) {
+            return "该邮箱未注册";
+        }
+
+        if (!hasAccount && mapper.findByNameOrEmail(email) != null) {
             return "该邮箱已被注册";
         }
 
         Random random = new Random();
         int code = random.nextInt(900000) + 100000;
+        String text = (hasAccount ? "您正在修改密码，验证码为：" : "您正在注册，验证码为：")
+                + code
+                + "，有效期为三分钟。";
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(email);
         message.setSubject("Study-SPB3 验证码");
-        message.setText("您的验证码为：" + code + "，有效期为三分钟。");
+        message.setText(text);
 
         try {
             mailSender.send(message);
             redisTemplate.opsForValue().set(key, String.valueOf(code), 3, TimeUnit.MINUTES);
 
             return null;
-        } catch (MailException mailException) {
+        } catch (
+                MailException mailException) {
             mailException.printStackTrace();
             return "验证码发送失败，请联系管理员";
         }
+
     }
 
     @Override
     public String validateAndRegister(String username, String password, String email, String code, String sessionId) {
-        String key = "email:" + sessionId + ":" + email;
+        String key = "email:" + sessionId + ":" + email + ":false";
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
             String val = redisTemplate.opsForValue().get(key);
@@ -108,6 +117,10 @@ public class AuthorizeServiceImpl implements AuthorizeService {
                 return "验证码已过期，请重新请求";
             } else {
                 if (val.equals(code)) {
+                    if (mapper.findByNameOrEmail(username) != null)
+                        return "此用户名已被注册，请更换用户名";
+
+                    redisTemplate.delete(key);
                     password = passwordEncoder.encode(password);
 
                     Account account = new Account();
@@ -115,7 +128,7 @@ public class AuthorizeServiceImpl implements AuthorizeService {
                     account.setPassword(password);
                     account.setEmail(email);
 
-                    if (mapper.insert(account) > 0) {
+                    if (mapper.createAccount(account) > 0) {
                         return null;
                     } else {
                         return "内部错误，请联系管理员";
@@ -129,5 +142,33 @@ public class AuthorizeServiceImpl implements AuthorizeService {
         }
 
 
+    }
+
+    @Override
+    public String validateOnly(String email, String code, String sessionId) {
+        String key = "email:" + sessionId + ":" + email + ":true";
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
+            String val = redisTemplate.opsForValue().get(key);
+
+            if (val == null) {
+                return "验证码已过期，请重新请求";
+            } else {
+                if (val.equals(code)) {
+                    redisTemplate.delete(key);
+                    return null;
+                } else {
+                    return "验证码错误";
+                }
+            }
+        } else {
+            return "请先请求一封验证码邮件";
+        }
+    }
+
+    @Override
+    public Boolean resetPassword(String email, String password) {
+
+        return mapper.resetPassword(email, passwordEncoder.encode(password)) > 0;
     }
 }
