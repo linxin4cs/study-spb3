@@ -19,7 +19,11 @@
       <div>在这里你可以同性交友（doge</div>
     </div>
     <div style="width: 400px; background-color: white; z-index: 1">
-        <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="el-fade-in-linear" mode="out-in">
+          <component :is="Component" style="height: 100%" />
+        </transition>
+      </router-view>
     </div>
   </div>
 </template>

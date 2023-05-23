@@ -1,6 +1,7 @@
 package com.example.studyspb3backend.mapper;
 
 import com.example.studyspb3backend.entity.Account;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
@@ -8,4 +9,7 @@ import org.apache.ibatis.annotations.Select;
 public interface UserMapper {
     @Select("select * from account where username = #{text} or email = #{text}")
     Account findByNameOrEmail(String text);
+
+    @Insert("insert into account (username, password, email) values (#{username}, #{password}, #{email})")
+    int insert(Account account);
 }
