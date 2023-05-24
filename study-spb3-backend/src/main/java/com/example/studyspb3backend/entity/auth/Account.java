@@ -1,4 +1,4 @@
-package com.example.studyspb3backend.entity;
+package com.example.studyspb3backend.entity.auth;
 
 import lombok.Data;
 

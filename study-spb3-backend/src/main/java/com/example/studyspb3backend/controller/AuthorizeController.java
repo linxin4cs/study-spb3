@@ -89,7 +89,7 @@ public class AuthorizeController {
         String email = (String) httpSession.getAttribute("reset-password");
         if (email == null) {
             return RestBean.failure(401, "请先完成邮箱验证");
-        } else if (service.resetPassword(email, password)) {
+        } else if (service.resetPasswordByEmail(email, password)) {
             httpSession.removeAttribute("reset-password");
             return RestBean.success("密码重置成功");
         } else {

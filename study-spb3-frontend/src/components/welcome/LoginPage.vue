@@ -2,8 +2,11 @@
 import { Lock, User } from "@element-plus/icons-vue";
 import { reactive } from "vue";
 import { ElMessage } from "element-plus";
-import { post } from "@/net";
+import { get, post } from "@/net";
 import router from "@/router";
+import { useStore } from "@/stores";
+
+const store = useStore();
 
 const form = reactive({
   username: "",
@@ -24,7 +27,12 @@ const login = () => {
       },
       (message) => {
         ElMessage.success(message);
-        router.push("/index");
+
+        get("/api/user/me", (message) => {
+          store.auth.userInfo = message;
+
+          router.push("/index");
+        });
       }
     );
   }

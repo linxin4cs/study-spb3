@@ -1,6 +1,6 @@
 package com.example.studyspb3backend.service.impl;
 
-import com.example.studyspb3backend.entity.Account;
+import com.example.studyspb3backend.entity.auth.Account;
 import com.example.studyspb3backend.mapper.UserMapper;
 import com.example.studyspb3backend.service.AuthorizeService;
 import jakarta.annotation.Resource;
@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +37,7 @@ public class AuthorizeServiceImpl implements AuthorizeService {
     StringRedisTemplate redisTemplate;
 
     BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final HashMap<String, String> emailSessions = new HashMap<String, String>();
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -43,7 +45,7 @@ public class AuthorizeServiceImpl implements AuthorizeService {
             throw new UsernameNotFoundException("用户名不能为空");
         }
 
-        Account account = mapper.findByNameOrEmail(username);
+        Account account = mapper.findAccountByNameOrEmail(username);
 
         if (account == null) {
             throw new UsernameNotFoundException("用户名或密码错误");
@@ -65,6 +67,14 @@ public class AuthorizeServiceImpl implements AuthorizeService {
     public String sendValidateEmail(String email, String sessionId, boolean hasAccount) {
         String key = "email:" + sessionId + ":" + email + ":" + hasAccount;
 
+        synchronized (emailSessions) {
+            if (emailSessions.containsKey(key)) {
+                return "请求频繁，请稍后再试";
+            } else {
+                emailSessions.put(key, "");
+            }
+        }
+
         if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
             Long expire = Optional.ofNullable(redisTemplate.getExpire(key, TimeUnit.SECONDS)).orElse(0L);
 
@@ -73,11 +83,11 @@ public class AuthorizeServiceImpl implements AuthorizeService {
             }
         }
 
-        if (hasAccount && mapper.findByNameOrEmail(email) == null) {
+        if (hasAccount && mapper.findAccountByNameOrEmail(email) == null) {
             return "该邮箱未注册";
         }
 
-        if (!hasAccount && mapper.findByNameOrEmail(email) != null) {
+        if (!hasAccount && mapper.findAccountByNameOrEmail(email) != null) {
             return "该邮箱已被注册";
         }
 
@@ -102,8 +112,9 @@ public class AuthorizeServiceImpl implements AuthorizeService {
                 MailException mailException) {
             mailException.printStackTrace();
             return "验证码发送失败，请联系管理员";
+        } finally {
+            emailSessions.remove(key);
         }
-
     }
 
     @Override
@@ -117,7 +128,7 @@ public class AuthorizeServiceImpl implements AuthorizeService {
                 return "验证码已过期，请重新请求";
             } else {
                 if (val.equals(code)) {
-                    if (mapper.findByNameOrEmail(username) != null)
+                    if (mapper.findAccountByNameOrEmail(username) != null)
                         return "此用户名已被注册，请更换用户名";
 
                     redisTemplate.delete(key);
@@ -140,8 +151,6 @@ public class AuthorizeServiceImpl implements AuthorizeService {
         } else {
             return "请先请求一封验证码邮件";
         }
-
-
     }
 
     @Override
@@ -167,8 +176,8 @@ public class AuthorizeServiceImpl implements AuthorizeService {
     }
 
     @Override
-    public Boolean resetPassword(String email, String password) {
+    public Boolean resetPasswordByEmail(String email, String password) {
 
-        return mapper.resetPassword(email, passwordEncoder.encode(password)) > 0;
+        return mapper.resetPasswordByEmail(email, passwordEncoder.encode(password)) > 0;
     }
 }

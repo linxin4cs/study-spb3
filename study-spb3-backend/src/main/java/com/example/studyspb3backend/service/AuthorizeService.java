@@ -9,5 +9,5 @@ public interface AuthorizeService extends UserDetailsService {
 
     String validateOnly(String email, String code, String sessionId);
 
-    Boolean resetPassword(String email, String password);
+    Boolean resetPasswordByEmail(String email, String password);
 }
