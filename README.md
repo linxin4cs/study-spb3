@@ -1,4 +1,4 @@
-# Front-end and Back-end Separation Project Template
+# Frontend and Backend Separation Project Template
 English | [中文](./README.zh-CN.md) 
 
 This template includes basic functionalities like login, registration, password reset, etc., and can be further developed for specific application scenarios.
